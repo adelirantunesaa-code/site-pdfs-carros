@@ -1,79 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Car, Plus, Edit, Trash2, Eye, Upload, Save, X } from 'lucide-react'
+import { Car, Plus, Edit, Trash2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-
-interface PDF {
-  id: number
-  titulo: string
-  descricao: string
-  preco: number
-  categoria: string
-  carro?: string
-  autor: string
-  paginas: number
-  arquivo?: string
-  capa?: string
-}
-
-const categorias = [
-  'Mecânica Básica',
-  'Preparação de Motores',
-  'Elétrica Automotiva',
-  'Suspensão e Freios',
-  'Diagnóstico de Problemas',
-  'Manual de Proprietários',
-  'Cuidados e Economia',
-  'Vendas e Negócios'
-]
-
-const carros = [
-  'Fusca', 'Gol', 'Uno', 'Corolla', 'Civic', 'Hilux', 'Onix', 'Ka'
-]
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PDF, todosOsPdfs, categorias, carros } from '@/lib/mock-data'
 
 export default function AdminPanel() {
   const [autenticado, setAutenticado] = useState(false)
   const [senha, setSenha] = useState('')
-  const [pdfs, setPdfs] = useState<PDF[]>([])
+  const [pdfs, setPdfs] = useState<PDF[]>(todosOsPdfs)
   const [editandoPdf, setEditandoPdf] = useState<PDF | null>(null)
   const [modalAberto, setModalAberto] = useState(false)
 
-  // Dados mockados iniciais
-  useEffect(() => {
-    setPdfs([
-      {
-        id: 1,
-        titulo: 'Fundamentos da Mecânica Automotiva',
-        descricao: 'Guia completo sobre os princípios básicos da mecânica de veículos',
-        preco: 29.90,
-        categoria: 'Mecânica Básica',
-        autor: 'João Silva',
-        paginas: 120,
-        capa: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&h=400&fit=crop'
-      },
-      {
-        id: 2,
-        titulo: 'Manual Completo do Fusca',
-        descricao: 'Guia definitivo para manutenção e restauração do Volkswagen Fusca',
-        preco: 39.90,
-        categoria: 'Manual de Proprietários',
-        carro: 'Fusca',
-        autor: 'Especialista Fusca',
-        paginas: 250,
-        capa: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&h=400&fit=crop'
-      }
-    ])
-  }, [])
-
   const handleLogin = () => {
-    // Senha simples para demonstração
     if (senha === 'autobook2024') {
       setAutenticado(true)
     } else {
@@ -85,11 +30,9 @@ export default function AdminPanel() {
     if (!editandoPdf) return
 
     if (editandoPdf.id === 0) {
-      // Novo PDF
       const novoId = Math.max(...pdfs.map(p => p.id)) + 1
       setPdfs([...pdfs, { ...editandoPdf, id: novoId }])
     } else {
-      // Editar PDF existente
       setPdfs(pdfs.map(p => p.id === editandoPdf.id ? editandoPdf : p))
     }
 
@@ -111,7 +54,7 @@ export default function AdminPanel() {
       preco: 0,
       categoria: '',
       autor: '',
-      paginas: 0
+      paginas: 0,
     })
     setModalAberto(true)
   }
@@ -157,7 +100,6 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -181,41 +123,9 @@ export default function AdminPanel() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-blue-600">{pdfs.length}</div>
-              <div className="text-sm text-gray-600">PDFs Cadastrados</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-green-600">
-                R$ {pdfs.reduce((acc, pdf) => acc + pdf.preco, 0).toFixed(2)}
-              </div>
-              <div className="text-sm text-gray-600">Valor Total</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-purple-600">
-                {new Set(pdfs.map(p => p.categoria)).size}
-              </div>
-              <div className="text-sm text-gray-600">Categorias</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-2xl font-bold text-orange-600">
-                {pdfs.filter(p => p.carro).length}
-              </div>
-              <div className="text-sm text-gray-600">Por Modelo</div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Ações */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Gerenciar PDFs</h2>
           <Button onClick={handleNovoPdf} className="bg-green-600 hover:bg-green-700">
@@ -224,7 +134,6 @@ export default function AdminPanel() {
           </Button>
         </div>
 
-        {/* Lista de PDFs */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -307,7 +216,6 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Modal de Edição */}
         <Dialog open={modalAberto} onOpenChange={setModalAberto}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
