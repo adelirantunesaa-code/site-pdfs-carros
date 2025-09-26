@@ -8,15 +8,22 @@ export async function POST(req: NextRequest) {
   try {
     const { product } = await req.json();
 
+    // Garante que o preço seja um número
+    const priceAsNumber = parseFloat(product.preco);
+
+    if (isNaN(priceAsNumber)) {
+      return NextResponse.json({ error: 'Preço inválido.' }, { status: 400 });
+    }
+
     const preference = new Preference(client);
     const result = await preference.create({
       body: {
         items: [
           {
-            title: product.titulo,
+            title: product.titulo || product.descricao, // Usa a descrição se o título não existir
             quantity: 1,
             currency_id: 'BRL',
-            unit_price: product.preco,
+            unit_price: priceAsNumber, // Envia o preço como número
           },
         ],
         back_urls: {
