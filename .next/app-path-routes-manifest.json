@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/create-payment/route": "/api/create-payment",
+  "/icon.svg/route": "/icon.svg",
+  "/admin-secret/page": "/admin-secret",
+  "/carro/[slug]/page": "/carro/[slug]",
+  "/checkout/page": "/checkout",
+  "/nicho/[slug]/page": "/nicho/[slug]",
+  "/nichos/page": "/nichos",
+  "/pdf/[id]/page": "/pdf/[id]",
+  "/page": "/"
+}
