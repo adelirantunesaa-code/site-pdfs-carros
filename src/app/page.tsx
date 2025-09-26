@@ -1,5 +1,8 @@
+
 import Link from 'next/link'
+import Image from 'next/image'
 import { Car, Wrench, Zap, Settings, Search, FileText, Heart, DollarSign } from 'lucide-react'
+import { siteConfig } from '@/lib/site-config'
 
 const nichos = [
   {
@@ -78,17 +81,21 @@ export default function Home() {
       <header className="bg-white shadow-lg border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl">
-                <Car className="h-8 w-8 text-white" />
-              </div>
+            <Link href="/" className="flex items-center space-x-3">
+              {siteConfig.logoUrl ? (
+                <Image src={siteConfig.logoUrl} alt="AutoBook Logo" width={50} height={50} className="rounded-xl" />
+              ) : (
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl">
+                  <Car className="h-8 w-8 text-white" />
+                </div>
+              )}
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   AutoBook
                 </h1>
                 <p className="text-sm text-gray-600">PDFs Automotivos Profissionais</p>
               </div>
-            </div>
+            </Link>
             <nav className="hidden md:flex space-x-8">
               <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                 Início
@@ -107,15 +114,12 @@ export default function Home() {
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Conhecimento Automotivo
-            <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Profissional
-            </span>
-          </h2>
+          <h2 
+            className="text-5xl md:text-6xl font-bold text-gray-900 mb-6"
+            dangerouslySetInnerHTML={{ __html: siteConfig.heroTitle.replace(/\n/g, '<br />') }}
+          />
           <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Acesse os melhores manuais, guias técnicos e materiais especializados sobre mecânica, 
-            elétrica, diagnóstico e manutenção automotiva. Conteúdo profissional para entusiastas e profissionais.
+            {siteConfig.heroDescription}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 

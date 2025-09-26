@@ -1,75 +1,23 @@
+
+'use client';
+
 import Link from 'next/link'
 import { Car, ArrowLeft, Download, Star, Clock, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react';
 
-// Dados mockados dos PDFs por nicho
-const pdfsPorNicho = {
-  'mecanica-basica': [
-    {
-      id: 1,
-      titulo: 'Fundamentos da Mecânica Automotiva',
-      descricao: 'Guia completo sobre os princípios básicos da mecânica de veículos',
-      preco: 29.90,
-      avaliacao: 4.8,
-      paginas: 120,
-      autor: 'João Silva',
-      capa: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&h=400&fit=crop'
-    },
-    {
-      id: 2,
-      titulo: 'Motor: Funcionamento e Manutenção',
-      descricao: 'Tudo sobre o coração do seu veículo - funcionamento, peças e manutenção',
-      preco: 39.90,
-      avaliacao: 4.9,
-      paginas: 180,
-      autor: 'Maria Santos',
-      capa: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=400&fit=crop'
-    },
-    {
-      id: 3,
-      titulo: 'Sistema de Transmissão Explicado',
-      descricao: 'Câmbio manual, automático e CVT - funcionamento e diagnóstico',
-      preco: 34.90,
-      avaliacao: 4.7,
-      paginas: 150,
-      autor: 'Carlos Oliveira',
-      capa: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&h=400&fit=crop'
-    }
-  ],
-  'eletrica-automotiva': [
-    {
-      id: 4,
-      titulo: 'Elétrica Automotiva Moderna',
-      descricao: 'Sistema elétrico completo - bateria, alternador, chicotes e módulos',
-      preco: 44.90,
-      avaliacao: 4.9,
-      paginas: 200,
-      autor: 'Pedro Costa',
-      capa: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=300&h=400&fit=crop'
-    },
-    {
-      id: 5,
-      titulo: 'Diagnóstico Elétrico com Scanner',
-      descricao: 'Como usar scanners e multímetros para diagnóstico elétrico preciso',
-      preco: 49.90,
-      avaliacao: 4.8,
-      paginas: 160,
-      autor: 'Ana Lima',
-      capa: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=300&h=400&fit=crop'
-    }
-  ],
-  'diagnostico-problemas': [
-    {
-      id: 6,
-      titulo: 'Diagnóstico Automotivo Avançado',
-      descricao: 'Técnicas profissionais para identificar e solucionar problemas complexos',
-      preco: 54.90,
-      avaliacao: 4.9,
-      paginas: 220,
-      autor: 'Roberto Ferreira',
-      capa: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&h=400&fit=crop'
-    }
-  ]
+// Definindo a interface do PDF para tipagem
+interface PDF {
+  id: number;
+  titulo: string;
+  descricao: string;
+  preco: number;
+  categoria: string;
+  autor: string;
+  paginas: number;
+  capa?: string;
+  carro?: string;
+  avaliacao?: number;
 }
 
 const nichosInfo = {
@@ -116,8 +64,23 @@ const nichosInfo = {
 }
 
 export default function NichoPage({ params }: { params: { slug: string } }) {
-  const nicho = nichosInfo[params.slug as keyof typeof nichosInfo]
-  const pdfs = pdfsPorNicho[params.slug as keyof typeof pdfsPorNicho] || []
+  const [pdfs, setPdfs] = useState<PDF[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const nicho = nichosInfo[params.slug as keyof typeof nichosInfo];
+
+  useEffect(() => {
+    if (params.slug) {
+      setLoading(true);
+      fetch('/api/pdfs')
+        .then(res => res.json())
+        .then((allPdfs: PDF[]) => {
+          const filtered = allPdfs.filter(pdf => pdf.categoria.toLowerCase().replace(/ /g, '-') === params.slug);
+          setPdfs(filtered);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [params.slug]);
 
   if (!nicho) {
     return (
@@ -174,12 +137,18 @@ export default function NichoPage({ params }: { params: { slug: string } }) {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               PDFs Disponíveis
             </h2>
-            <p className="text-gray-600">
-              {pdfs.length} materiais encontrados nesta categoria
-            </p>
+            {!loading && (
+              <p className="text-gray-600">
+                {pdfs.length} materiais encontrados nesta categoria
+              </p>
+            )}
           </div>
 
-          {pdfs.length === 0 ? (
+          {loading ? (
+             <div className="text-center py-16">
+              <p className="text-gray-600">Carregando materiais...</p>
+            </div>
+          ) : pdfs.length === 0 ? (
             <div className="text-center py-16">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">

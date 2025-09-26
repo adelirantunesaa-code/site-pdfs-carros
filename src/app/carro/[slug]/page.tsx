@@ -1,55 +1,23 @@
+
+'use client';
+
 import Link from 'next/link'
 import { Car, ArrowLeft, Download, Star, Clock, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react';
 
-// Dados mockados dos PDFs por carro
-const pdfsPorCarro = {
-  'fusca': [
-    {
-      id: 7,
-      titulo: 'Manual Completo do Fusca',
-      descricao: 'Guia definitivo para manutenção e restauração do Volkswagen Fusca',
-      preco: 39.90,
-      avaliacao: 4.9,
-      paginas: 250,
-      autor: 'Especialista Fusca',
-      capa: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&h=400&fit=crop'
-    },
-    {
-      id: 8,
-      titulo: 'Elétrica do Fusca Simplificada',
-      descricao: 'Sistema elétrico do Fusca explicado de forma simples e prática',
-      preco: 24.90,
-      avaliacao: 4.7,
-      paginas: 120,
-      autor: 'João Elétrica',
-      capa: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=300&h=400&fit=crop'
-    }
-  ],
-  'gol': [
-    {
-      id: 9,
-      titulo: 'Gol G1 ao G8 - Manual Técnico',
-      descricao: 'Todas as gerações do Gol em um manual técnico completo',
-      preco: 44.90,
-      avaliacao: 4.8,
-      paginas: 300,
-      autor: 'VW Especialista',
-      capa: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&h=400&fit=crop'
-    }
-  ],
-  'corolla': [
-    {
-      id: 10,
-      titulo: 'Toyota Corolla - Manutenção Preventiva',
-      descricao: 'Guia completo de manutenção preventiva para todas as gerações do Corolla',
-      preco: 49.90,
-      avaliacao: 4.9,
-      paginas: 200,
-      autor: 'Toyota Expert',
-      capa: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=400&fit=crop'
-    }
-  ]
+// Definindo a interface do PDF para tipagem
+interface PDF {
+  id: number;
+  titulo: string;
+  descricao: string;
+  preco: number;
+  categoria: string;
+  autor: string;
+  paginas: number;
+  capa?: string;
+  carro?: string;
+  avaliacao?: number;
 }
 
 const carrosInfo = {
@@ -112,8 +80,23 @@ const carrosInfo = {
 }
 
 export default function CarroPage({ params }: { params: { slug: string } }) {
-  const carro = carrosInfo[params.slug as keyof typeof carrosInfo]
-  const pdfs = pdfsPorCarro[params.slug as keyof typeof pdfsPorCarro] || []
+  const [pdfs, setPdfs] = useState<PDF[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const carro = carrosInfo[params.slug as keyof typeof carrosInfo];
+
+  useEffect(() => {
+    if (params.slug) {
+      setLoading(true);
+      fetch('/api/pdfs')
+        .then(res => res.json())
+        .then((allPdfs: PDF[]) => {
+          const filtered = allPdfs.filter(pdf => pdf.carro?.toLowerCase().replace(/ /g, '-') === params.slug);
+          setPdfs(filtered);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [params.slug]);
 
   if (!carro) {
     return (
@@ -187,12 +170,18 @@ export default function CarroPage({ params }: { params: { slug: string } }) {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               Manuais Disponíveis
             </h2>
-            <p className="text-gray-600">
-              {pdfs.length} materiais específicos para o {carro.nome}
-            </p>
+            {!loading && (
+              <p className="text-gray-600">
+                {pdfs.length} materiais específicos para o {carro.nome}
+              </p>
+            )}
           </div>
 
-          {pdfs.length === 0 ? (
+          {loading ? (
+             <div className="text-center py-16">
+              <p className="text-gray-600">Carregando manuais...</p>
+            </div>
+          ) : pdfs.length === 0 ? (
             <div className="text-center py-16">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">

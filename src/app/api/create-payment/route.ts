@@ -2,13 +2,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
-const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
+const accessToken = process.env.MP_ACCESS_TOKEN;
+
+if (!accessToken) {
+  console.error('Mercado Pago access token is not configured. Please set the MP_ACCESS_TOKEN environment variable.');
+}
+
+const client = new MercadoPagoConfig({ accessToken: accessToken! });
 
 export async function POST(req: NextRequest) {
+  if (!accessToken) {
+    return NextResponse.json({ error: 'Ocorreu um erro de configuração, entre em contato com o suporte.' }, { status: 500 });
+  }
+
   try {
     const { product } = await req.json();
 
-    // Garante que o preço seja um número
     const priceAsNumber = parseFloat(product.preco);
 
     if (isNaN(priceAsNumber)) {
@@ -20,10 +29,10 @@ export async function POST(req: NextRequest) {
       body: {
         items: [
           {
-            title: product.titulo || product.descricao, // Usa a descrição se o título não existir
+            title: product.titulo || product.descricao,
             quantity: 1,
             currency_id: 'BRL',
-            unit_price: priceAsNumber, // Envia o preço como número
+            unit_price: priceAsNumber,
           },
         ],
         back_urls: {

@@ -1,19 +1,86 @@
-'use client'
 
-import Link from 'next/link'
-import { useState } from 'react'
-import { Car, ArrowLeft, Download, Star, Award } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { PDF, todosOsPdfs } from '@/lib/mock-data'
+'use client';
+
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { Car, ArrowLeft, Download, Star, Award, Loader } from 'lucide-react'; // Adicionado Loader
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+// Definindo a interface do PDF para tipagem
+interface PDF {
+  id: number;
+  titulo: string;
+  descricao: string;
+  preco: number;
+  categoria: string;
+  autor: string;
+  paginas: number;
+  capa?: string;
+  carro?: string;
+  avaliacao?: number;
+}
 
 export default function PdfPage({ params }: { params: { id: string } }) {
-  const [email, setEmail] = useState('')
-  const [nome, setNome] = useState('')
-  const [processandoCompra, setProcessandoCompra] = useState(false)
-  
-  const pdf = todosOsPdfs.find(p => p.id === parseInt(params.id))
+  const [pdf, setPdf] = useState<PDF | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [nome, setNome] = useState('');
+  const [processandoCompra, setProcessandoCompra] = useState(false);
+
+  useEffect(() => {
+    if (params.id) {
+      setLoading(true);
+      fetch('/api/pdfs')
+        .then(res => res.json())
+        .then((allPdfs: PDF[]) => {
+          const foundPdf = allPdfs.find(p => p.id === parseInt(params.id));
+          setPdf(foundPdf || null);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [params.id]);
+
+  const handleCompra = async () => {
+    if (!email || !nome) {
+      alert('Por favor, preencha todos os campos');
+      return;
+    }
+    if (!pdf) return;
+
+    setProcessandoCompra(true);
+    
+    try {
+      const response = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product: pdf }),
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Erro ao criar pagamento:', data.error);
+        alert('Ocorreu um erro ao processar o pagamento.');
+      }
+    } catch (error) {
+      console.error('Erro ao criar pagamento:', error);
+      alert('Ocorreu um erro ao processar o pagamento.');
+    } finally {
+      setProcessandoCompra(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader className="animate-spin h-10 w-10 text-blue-600" />
+        <span className="ml-4 text-lg text-gray-700">Carregando detalhes do PDF...</span>
+      </div>
+    );
+  }
 
   if (!pdf) {
     return (
@@ -25,39 +92,7 @@ export default function PdfPage({ params }: { params: { id: string } }) {
           </Link>
         </div>
       </div>
-    )
-  }
-
-  const handleCompra = async () => {
-    if (!email || !nome) {
-      alert('Por favor, preencha todos os campos')
-      return
-    }
-
-    setProcessandoCompra(true)
-    
-    try {
-      const response = await fetch('/api/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ product: pdf }),
-      })
-
-      const data = await response.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        console.error('Erro ao criar pagamento:', data.error)
-        alert('Ocorreu um erro ao processar o pagamento.')
-      }
-    } catch (error) {
-      console.error('Erro ao criar pagamento:', error)
-      alert('Ocorreu um erro ao processar o pagamento.')
-    } finally {
-      setProcessandoCompra(false)
-    }
+    );
   }
 
   return (
@@ -175,5 +210,5 @@ export default function PdfPage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

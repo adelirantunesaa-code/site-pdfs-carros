@@ -1,341 +1,197 @@
-'use client'
 
-import { useState, useEffect } from 'react'
-import { Car, Plus, Edit, Trash2, Save } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { PDF, todosOsPdfs, categorias, carros } from '@/lib/mock-data'
+'use client';
 
-export default function AdminPanel() {
-  const [autenticado, setAutenticado] = useState(false)
-  const [senha, setSenha] = useState('')
-  const [pdfs, setPdfs] = useState<PDF[]>(todosOsPdfs)
-  const [editandoPdf, setEditandoPdf] = useState<PDF | null>(null)
-  const [modalAberto, setModalAberto] = useState(false)
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 
-  const handleLogin = () => {
-    if (senha === 'autobook2024') {
-      setAutenticado(true)
+// Tipos
+interface PDF {
+  id: number;
+  titulo: string;
+  descricao: string;
+  preco: number;
+  categoria: string;
+  autor: string;
+  paginas: number;
+  capa?: string;
+  carro?: string;
+  avaliacao?: number;
+}
+
+interface SiteConfig {
+  logoUrl: string;
+  heroTitle: string;
+  heroDescription: string;
+}
+
+// Estado inicial para os formulários
+const initialPdfFormState: Omit<PDF, 'id'> = {
+  titulo: '',
+  descricao: '',
+  preco: 0,
+  categoria: '',
+  autor: '',
+  paginas: 0,
+  capa: '',
+  carro: '',
+  avaliacao: 0,
+};
+
+const initialSiteConfigState: SiteConfig = {
+  logoUrl: '',
+  heroTitle: '',
+  heroDescription: '',
+};
+
+export default function AdminSecretPage() {
+  const [pdfs, setPdfs] = useState<PDF[]>([]);
+  const [pdfFormData, setPdfFormData] = useState<Omit<PDF, 'id'> | PDF>(initialPdfFormState);
+  const [isEditingPdf, setIsEditingPdf] = useState(false);
+
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(initialSiteConfigState);
+
+  // Carregar dados iniciais
+  useEffect(() => {
+    fetch('/api/pdfs')
+      .then(res => res.json())
+      .then(data => setPdfs(data));
+
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => setSiteConfig(data));
+  }, []);
+
+  // Handlers para o formulário de PDF
+  const handlePdfInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const parsedValue = ['preco', 'paginas', 'avaliacao'].includes(name) ? parseFloat(value) : value;
+    setPdfFormData(prev => ({ ...prev, [name]: parsedValue }));
+  };
+
+  const handlePdfFormSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const url = '/api/pdfs';
+    const method = isEditingPdf ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pdfFormData),
+    });
+    const result = await res.json();
+
+    if (isEditingPdf) {
+      setPdfs(pdfs.map(p => p.id === result.id ? result : p));
     } else {
-      alert('Senha incorreta!')
-    }
-  }
-
-  const handleSalvarPdf = () => {
-    if (!editandoPdf) return
-
-    if (editandoPdf.id === 0) {
-      const novoId = Math.max(...pdfs.map(p => p.id)) + 1
-      setPdfs([...pdfs, { ...editandoPdf, id: novoId }])
-    } else {
-      setPdfs(pdfs.map(p => p.id === editandoPdf.id ? editandoPdf : p))
+      setPdfs([...pdfs, result]);
     }
 
-    setEditandoPdf(null)
-    setModalAberto(false)
-  }
+    setIsEditingPdf(false);
+    setPdfFormData(initialPdfFormState);
+  };
 
-  const handleExcluirPdf = (id: number) => {
+  const handleEditPdf = (pdf: PDF) => {
+    setIsEditingPdf(true);
+    setPdfFormData(pdf);
+  };
+
+  const handleCancelEditPdf = () => {
+    setIsEditingPdf(false);
+    setPdfFormData(initialPdfFormState);
+  };
+
+  const handleDeletePdf = async (id: number) => {
     if (confirm('Tem certeza que deseja excluir este PDF?')) {
-      setPdfs(pdfs.filter(p => p.id !== id))
+      await fetch('/api/pdfs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      setPdfs(pdfs.filter(p => p.id !== id));
     }
-  }
+  };
 
-  const handleNovoPdf = () => {
-    setEditandoPdf({
-      id: 0,
-      titulo: '',
-      descricao: '',
-      preco: 0,
-      categoria: '',
-      autor: '',
-      paginas: 0,
-    })
-    setModalAberto(true)
-  }
+  // Handlers para o formulário de Configuração do Site
+  const handleSiteConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setSiteConfig(prev => ({ ...prev, [name]: value }));
+  };
 
-  const handleEditarPdf = (pdf: PDF) => {
-    setEditandoPdf({ ...pdf })
-    setModalAberto(true)
-  }
-
-  if (!autenticado) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl w-fit mx-auto mb-4">
-              <Car className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">Painel Administrativo</h1>
-            <p className="text-gray-600">AutoBook - Acesso Restrito</p>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="senha">Senha de Acesso</Label>
-              <Input
-                id="senha"
-                type="password"
-                placeholder="Digite a senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                className="mt-1"
-              />
-            </div>
-            <Button onClick={handleLogin} className="w-full">
-              Entrar
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const handleSiteConfigSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(siteConfig),
+    });
+    alert('Configurações do site atualizadas com sucesso!');
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-lg">
-                <Car className="h-6 w-6 text-white" />
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">Gerenciamento de Conteúdo</h1>
+
+      {/* Gerenciamento de Conteúdo Global */}
+      <div className="mb-8 p-6 border rounded-lg shadow-md bg-white">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">Conteúdo Global</h2>
+        <form onSubmit={handleSiteConfigSubmit} className="space-y-4">
+          <input type="text" name="logoUrl" placeholder="URL do Logo" value={siteConfig.logoUrl} onChange={handleSiteConfigChange} className="w-full p-2 border rounded" />
+          <input type="text" name="heroTitle" placeholder="Título da Página Inicial" value={siteConfig.heroTitle} onChange={handleSiteConfigChange} className="w-full p-2 border rounded" />
+          <textarea name="heroDescription" placeholder="Descrição da Página Inicial" value={siteConfig.heroDescription} onChange={handleSiteConfigChange} className="w-full p-2 border rounded" />
+          <button type="submit" className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+            Salvar Conteúdo Global
+          </button>
+        </form>
+      </div>
+
+      {/* Gerenciamento de PDFs */}
+      <div className="mb-8 p-6 border rounded-lg shadow-md bg-white">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">{isEditingPdf ? 'Editar PDF' : 'Adicionar Novo PDF'}</h2>
+        <form onSubmit={handlePdfFormSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="text" name="titulo" placeholder="Título" value={pdfFormData.titulo} onChange={handlePdfInputChange} className="w-full p-2 border rounded" required />
+          <input type="number" name="preco" placeholder="Preço" value={pdfFormData.preco} onChange={handlePdfInputChange} className="w-full p-2 border rounded" required />
+          <input type="text" name="categoria" placeholder="Categoria" value={pdfFormData.categoria} onChange={handlePdfInputChange} className="w-full p-2 border rounded" required />
+          <input type="text" name="autor" placeholder="Autor" value={pdfFormData.autor} onChange={handlePdfInputChange} className="w-full p-2 border rounded" required />
+          <input type="number" name="paginas" placeholder="Páginas" value={pdfFormData.paginas} onChange={handlePdfInputChange} className="w-full p-2 border rounded" required />
+          <input type="text" name="carro" placeholder="Carro (opcional)" value={pdfFormData.carro || ''} onChange={handlePdfInputChange} className="w-full p-2 border rounded" />
+          <input type="number" step="0.1" name="avaliacao" placeholder="Avaliação (opcional)" value={pdfFormData.avaliacao || 0} onChange={handlePdfInputChange} className="w-full p-2 border rounded" />
+          <input type="text" name="capa" placeholder="URL da Capa" value={pdfFormData.capa || ''} onChange={handlePdfInputChange} className="w-full p-2 border rounded md:col-span-2" />
+          <textarea name="descricao" placeholder="Descrição" value={pdfFormData.descricao} onChange={handlePdfInputChange} className="w-full p-2 border rounded md:col-span-2" required />
+          
+          <div className="md:col-span-2 flex items-center gap-4">
+            <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              {isEditingPdf ? 'Salvar Alterações' : 'Adicionar PDF'}
+            </button>
+            {isEditingPdf && (
+              <button type="button" onClick={handleCancelEditPdf} className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                Cancelar Edição
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Lista de PDFs Existentes */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">PDFs Cadastrados</h2>
+        <div className="space-y-4">
+          {pdfs.map(pdf => (
+            <div key={pdf.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+              <div className='flex-grow'>
+                <span className='font-semibold text-lg text-gray-800'>{pdf.titulo}</span>
+                <p className='text-sm text-gray-600'>{pdf.categoria} / {pdf.carro || 'N/A'}</p>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">AutoBook Admin</h1>
-                <p className="text-sm text-gray-600">Painel Administrativo</p>
+              <div className="flex items-center gap-2 mt-2 md:mt-0">
+                <button onClick={() => handleEditPdf(pdf)} className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium">
+                  Editar
+                </button>
+                <button onClick={() => handleDeletePdf(pdf.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
+                  Excluir
+                </button>
               </div>
             </div>
-            <Button 
-              onClick={() => setAutenticado(false)}
-              variant="outline"
-            >
-              Sair
-            </Button>
-          </div>
+          ))}
         </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        </div>
-
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Gerenciar PDFs</h2>
-          <Button onClick={handleNovoPdf} className="bg-green-600 hover:bg-green-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Novo PDF
-          </Button>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    PDF
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Categoria
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Preço
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Páginas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {pdfs.map((pdf) => (
-                  <tr key={pdf.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-12 w-12">
-                          {pdf.capa ? (
-                            <img className="h-12 w-12 rounded-lg object-cover" src={pdf.capa} alt="" />
-                          ) : (
-                            <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                              <Car className="h-6 w-6 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{pdf.titulo}</div>
-                          <div className="text-sm text-gray-500">{pdf.autor}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {pdf.categoria}
-                      </span>
-                      {pdf.carro && (
-                        <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          {pdf.carro}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      R$ {pdf.preco.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {pdf.paginas}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditarPdf(pdf)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleExcluirPdf(pdf.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editandoPdf?.id === 0 ? 'Novo PDF' : 'Editar PDF'}
-              </DialogTitle>
-            </DialogHeader>
-            
-            {editandoPdf && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="titulo">Título</Label>
-                    <Input
-                      id="titulo"
-                      value={editandoPdf.titulo}
-                      onChange={(e) => setEditandoPdf({...editandoPdf, titulo: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="autor">Autor</Label>
-                    <Input
-                      id="autor"
-                      value={editandoPdf.autor}
-                      onChange={(e) => setEditandoPdf({...editandoPdf, autor: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="descricao">Descrição</Label>
-                  <Textarea
-                    id="descricao"
-                    value={editandoPdf.descricao}
-                    onChange={(e) => setEditandoPdf({...editandoPdf, descricao: e.target.value})}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="preco">Preço (R$)</Label>
-                    <Input
-                      id="preco"
-                      type="number"
-                      step="0.01"
-                      value={editandoPdf.preco}
-                      onChange={(e) => setEditandoPdf({...editandoPdf, preco: parseFloat(e.target.value) || 0})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="paginas">Páginas</Label>
-                    <Input
-                      id="paginas"
-                      type="number"
-                      value={editandoPdf.paginas}
-                      onChange={(e) => setEditandoPdf({...editandoPdf, paginas: parseInt(e.target.value) || 0})}
-                    />
-                  </div>
-                  <div>
-                    <Label>Categoria</Label>
-                    <Select 
-                      value={editandoPdf.categoria} 
-                      onValueChange={(value) => setEditandoPdf({...editandoPdf, categoria: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categorias.map(cat => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Carro (opcional)</Label>
-                    <Select 
-                      value={editandoPdf.carro || ''} 
-                      onValueChange={(value) => setEditandoPdf({...editandoPdf, carro: value || undefined})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
-                        {carros.map(carro => (
-                          <SelectItem key={carro} value={carro}>{carro}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="capa">URL da Capa</Label>
-                    <Input
-                      id="capa"
-                      value={editandoPdf.capa || ''}
-                      onChange={(e) => setEditandoPdf({...editandoPdf, capa: e.target.value})}
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button variant="outline" onClick={() => setModalAberto(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSalvarPdf}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
-  )
+  );
 }
