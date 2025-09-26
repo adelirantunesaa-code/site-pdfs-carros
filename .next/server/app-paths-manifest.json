@@ -1,0 +1,7 @@
+{
+  "/api/create-payment/route": "app/api/create-payment/route.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/nicho/[slug]/page": "app/nicho/[slug]/page.js",
+  "/page": "app/page.js",
+  "/pdf/[id]/page": "app/pdf/[id]/page.js"
+}

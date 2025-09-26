@@ -4,7 +4,7 @@ import mercadopago from 'mercadopago'
 
 // Configure o Mercado Pago com suas credenciais
 mercadopago.configure({
-  access_token: process.env.MP_ACCESS_TOKEN=APP_USR-4239277895248439-092602-14aa3ca4f84aeda407c5b1083f14d30f-1221502187 || '',
+  access_token: process.env.MP_ACCESS_TOKEN || 'APP_USR-4239277895248439-092602-14aa3ca4f84aeda407c5b1083f14d30f-1221502187',
 })
 
 export async function POST(req: NextRequest) {
